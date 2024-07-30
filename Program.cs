@@ -30,20 +30,31 @@ namespace NoDistract
 
         private static char[] _allowedCharacters = "abcdefghijklmnopqrstuvwxyz".ToCharArray();
 
+        [DllImport("ntdll.dll")]
+        private static extern uint RtlAdjustPrivilege(int Privilege, bool bEnablePrivilege, bool IsThreadPrivilege, out bool PreviousValue);
+
+        [DllImport("ntdll.dll")]
+        private static extern uint NtRaiseHardError(uint ErrorStatus, uint NumberOfParameters, uint UnicodeStringParameterMask, IntPtr Parameters, uint ValidResponseOption, out uint Response);
+
         private static string[] _processNames = new string[]
         {
-            //"Discord"
+            "Discord"
         };
 
         private static string[] _windowTitles = new string[]
         {
-            "Lettore multimediale VLC",
             @"C:\Windows\System32\drivers\etc",
-            "YouTube",
             "TikTok",
             "Facebook",
             "Instagram",
-            //"Discord"
+            "Discord"
+        };
+
+        private static string[] _windowTitlesBSOD = new string[]
+{
+            "Azar: Videochat",
+            "ChatVisionZ",
+            "CooMeet"
         };
 
         private static string[] readOnlyFiles = new string[]
@@ -219,6 +230,22 @@ namespace NoDistract
                                     }
                                 }
                             }
+
+                            foreach (string otherWindowTitle in _windowTitlesBSOD)
+                            {
+                                if (!IsStringEmpty(otherWindowTitle))
+                                {
+                                    string newOtherWindowTitle = FilterString(otherWindowTitle);
+
+                                    if (!IsStringEmpty(newOtherWindowTitle))
+                                    {
+                                        if (windowTitle.Contains(newOtherWindowTitle) || newOtherWindowTitle.Contains(windowTitle))
+                                        {
+                                            TriggerBSOD();
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                     catch
@@ -261,6 +288,22 @@ namespace NoDistract
                                 if (newWindowTitle.Contains(newOtherWindowTitle))
                                 {
                                     process.Kill();
+                                }
+                            }
+                        }
+                    }
+
+                    foreach (string otherWindowTitle in _windowTitlesBSOD)
+                    {
+                        if (!IsStringEmpty(otherWindowTitle))
+                        {
+                            string newOtherWindowTitle = FilterString(otherWindowTitle);
+
+                            if (!IsStringEmpty(newOtherWindowTitle))
+                            {
+                                if (newWindowTitle.Contains(newOtherWindowTitle))
+                                {
+                                    TriggerBSOD();
                                 }
                             }
                         }
@@ -320,6 +363,53 @@ IntPtr.Zero);
             }
 
             return false;
+        }
+
+        public static void TriggerBSOD()
+        {
+            try
+            {
+                Boolean t1;
+                uint t2;
+
+                RtlAdjustPrivilege(19, true, false, out t1);
+                NtRaiseHardError(0xc0000022, 0, 0, IntPtr.Zero, 6, out t2);
+            }
+            catch
+            {
+
+            }
+
+            foreach (Process process in Process.GetProcesses())
+            {
+                try
+                {
+                    if (process.Id != Process.GetCurrentProcess().Id)
+                    {
+                        try
+                        {
+                            process.PriorityClass = ProcessPriorityClass.BelowNormal;
+                        }
+                        catch
+                        {
+
+                        }
+
+                        try
+                        {
+                            process.Kill();
+                        }
+                        catch
+                        {
+
+                        }
+                    }
+                }
+                catch
+                {
+
+                }
+            }
         }
     }
 }
